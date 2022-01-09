@@ -5,25 +5,29 @@ from scipy.integrate import odeint
 
 
 class Learner(object):
-    def __init__(self, country, start_date, N):
+    def __init__(self, country, start_date, N, end_date):
         self.start_date = start_date
+        self.end_date = end_date
         self.N = N
         self.country = country
 
     def load_confirmed(self):
         df = pd.read_csv('data/time_series_19-covid-Confirmed-country.csv')
         country_df = df[df['Country/Region'] == self.country]
-        return country_df.iloc[0].loc[self.start_date:'6/19/21']
+        data = country_df.iloc[0].loc[self.start_date:self.end_date]
+        return data[1:] - data[:-1].values
 
     def load_immune(self):
         df = pd.read_csv('data/time_series_19-covid-Recovered-country.csv')
         country_df = df[df['Country/Region'] == self.country]
-        return country_df.iloc[0].loc[self.start_date:'6/19/21']
+        data = country_df.iloc[0].loc[self.start_date:self.end_date]
+        return data[1:]
 
     def load_dead(self):
         df = pd.read_csv('data/time_series_19-covid-Deaths-country.csv')
         country_df = df[df['Country/Region'] == self.country]
-        return country_df.iloc[0].loc[self.start_date:'6/19/21']
+        data = country_df.iloc[0].loc[self.start_date:self.end_date]
+        return data[1:]
 
     def predict(self, start_index=None):
         if start_index is None:
@@ -77,7 +81,6 @@ class Learner(object):
                                self.confirmed[0],
                                self.immunne[0]
                            ),
-
                            method='L-BFGS-B',
                            bounds=[(0.00000001, 1.0), (0.00000001, 1.0)]
                            )
