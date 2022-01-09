@@ -52,7 +52,7 @@ class Learner(object):
         i_0 = self.confirmed[start_index]
         r_0 = self.immunne[start_index]
         y0 = [s_0, i_0, r_0]
-        tspan = np.arange(0, size, 1)
+        tspan = np.arange(start_index, size + start_index, 1)
         res = odeint(d_sir, y0, tspan)
 
         y0 = res[:, 0]
@@ -61,7 +61,7 @@ class Learner(object):
 
         return y0, y1, y2
 
-    def train(self, split_value=0.7):
+    def train(self, train_start=200, train_end=400):
         self.healed = self.load_immune()
         self.death = self.load_dead()
 
@@ -69,20 +69,20 @@ class Learner(object):
         self.confirmed = self.load_confirmed() / self.N  # I
         self.potencial = (1 - (self.confirmed + self.immunne))  # S
 
-        self.train_index = int(self.confirmed.shape[0] * split_value)
-
+        self.train_index = train_end
+        train_slice = slice(train_start, train_end)
         optimal = minimize(self.loss, np.array([0.5, 0.5]),
                            args=(
-                               self.potencial.iloc[:self.train_index],
-                               self.confirmed.iloc[:self.train_index],
-                               self.immunne.iloc[:self.train_index],
+                               self.potencial.iloc[train_slice],
+                               self.confirmed.iloc[train_slice],
+                               self.immunne.iloc[train_slice],
 
                                (1 - (self.confirmed[0] + self.immunne[0])),
                                self.confirmed[0],
                                self.immunne[0]
                            ),
                            method='L-BFGS-B',
-                           bounds=[(0.00000001, 1.0), (0.00000001, 1.0)]
+                           bounds=[(0.00000001, 10.0), (0.00000001, 10.0)]
                            )
         print(optimal)
         beta, gamma = optimal.x
@@ -116,8 +116,7 @@ class Learner(object):
 
         tspan = np.arange(0, size, 1)
         res = odeint(SIR, y0, tspan)
-        l1 = np.mean(np.abs(res[200:400, 1] - confirmed[200:400]))
-        l2 = np.mean(np.abs(res[200:400, 2] - immune[200:400]))
+        l1 = np.mean(np.abs(res[:, 1] - confirmed[:]))
+        l2 = np.mean(np.abs(res[:, 2] - immune[:]))
 
         return 1.5 * l1 + l2
-
